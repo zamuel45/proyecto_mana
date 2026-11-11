@@ -4,7 +4,7 @@ import { useToast } from '../../components/Toasts';
 import { Aviso, Boton, Cargando, Insignia, cx } from '../../components/ui';
 import { useEvento } from '../../context/Sesion';
 import { useDatos } from '../../hooks/useDatos';
-import { api } from '../../lib/api';
+import { rpc } from '../../lib/api';
 import { hora, minutosDesde } from '../../lib/formato';
 import { sonar } from '../../lib/sonido';
 import type { Pedido } from '../../lib/tipos';
@@ -12,7 +12,7 @@ import type { Pedido } from '../../lib/tipos';
 /* 2.2.5 Pantalla de cocina: cola de pedidos en orden de llegada, cambios y cancelaciones al instante */
 export function PanelCocina() {
   const toast = useToast();
-  const { datos, cargando, sinConexion, recargar } = useDatos<{ pedidos: Pedido[] }>('pedidos.php?vista=cocina', ['pedido']);
+  const { datos, cargando, sinConexion, recargar } = useDatos<{ pedidos: Pedido[] }>('pedidos_cocina', ['pedido']);
   const [trabajando, setTrabajando] = useState<number | null>(null);
   const [ahora, setAhora] = useState(Date.now());
   const [nuevos, setNuevos] = useState<Set<number>>(new Set());
@@ -54,7 +54,7 @@ export function PanelCocina() {
   async function avanzar(p: Pedido, accion: 'preparar' | 'listo' | 'entregar') {
     setTrabajando(p.id);
     try {
-      await api('pedidos.php', { datos: { accion, pedido_id: p.id } });   // la tarjeta cambia de columna: no hace falta aviso
+      await rpc(`pedido_${accion}`, { pedido_id: p.id });   // la tarjeta cambia de columna: no hace falta aviso
       void recargar();
     } catch (e) {
       toast((e as Error).message, 'error');

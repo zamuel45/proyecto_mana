@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Boton, Cargando, Dato, Insignia, Tarjeta, Vacio, cx } from '../../components/ui';
 import { useDatos } from '../../hooks/useDatos';
-import { api } from '../../lib/api';
+import { rpc } from '../../lib/api';
 import { hora, pesos } from '../../lib/formato';
 import type { Mesa, Notificacion, Pedido, Venta } from '../../lib/tipos';
 
@@ -10,10 +10,10 @@ type Seccion = 'resumen' | 'mesas' | 'menu' | 'inventario' | 'empleados' | 'repo
 
 /* Vista del día: ventas en tiempo real (2.2.8.1), notificaciones (2.2.8.2) y estado general */
 export function Resumen({ notif, irA }: { notif: Notif; irA: (s: Seccion) => void }) {
-  const libro = useDatos<{ ventas: Venta[]; total: number; pedidos: number }>('ventas.php', ['venta']);
-  const mesas = useDatos<{ mesas: Mesa[] }>('mesas.php', ['mesas']);
-  const cocina = useDatos<{ pedidos: Pedido[] }>('pedidos.php?vista=cocina', ['pedido']);
-  const inv = useDatos<{ resumen: { agotados: number; bajos: number; sin_registrar: number } }>('inventario.php', ['catalogo']);
+  const libro = useDatos<{ ventas: Venta[]; total: number; pedidos: number }>('ventas_libro', ['venta']);
+  const mesas = useDatos<{ mesas: Mesa[] }>('mesas_listar', ['mesas']);
+  const cocina = useDatos<{ pedidos: Pedido[] }>('pedidos_cocina', ['pedido']);
+  const inv = useDatos<{ resumen: { agotados: number; bajos: number; sin_registrar: number } }>('inventario_listar', ['catalogo']);
   const [abierta, setAbierta] = useState<number | null>(null);
 
   const ocupadas = mesas.datos?.mesas.filter((m) => m.estado !== 'libre').length ?? 0;
@@ -23,7 +23,7 @@ export function Resumen({ notif, irA }: { notif: Notif; irA: (s: Seccion) => voi
   const ticket = libro.datos && libro.datos.pedidos ? libro.datos.total / libro.datos.pedidos : 0;
 
   async function marcarLeidas() {
-    await api('notificaciones.php', { datos: { accion: 'leer' } }).catch(() => {});
+    await rpc('notificaciones_leer').catch(() => {});
     void notif.recargar();
   }
 

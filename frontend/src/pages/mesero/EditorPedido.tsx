@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useToast } from '../../components/Toasts';
 import { Aviso, Boton, Cargando, Vacio, cx } from '../../components/ui';
 import { useDatos } from '../../hooks/useDatos';
-import { api } from '../../lib/api';
+import { rpc } from '../../lib/api';
 import { urlImagen } from '../../lib/config';
 import { pesos } from '../../lib/formato';
 import type { Pedido, Producto } from '../../lib/tipos';
@@ -11,7 +11,7 @@ import type { Pedido, Producto } from '../../lib/tipos';
  * 2.2.4.3 Enviar a cocina · 2.2.4.4 Editar pedido */
 export function EditorPedido({ mesaId, mesa, pedido, volver }: { mesaId: number; mesa: string; pedido?: Pedido; volver: () => void }) {
   const toast = useToast();
-  const { datos, cargando } = useDatos<{ productos: Producto[] }>('productos.php', ['catalogo']);
+  const { datos, cargando } = useDatos<{ productos: Producto[] }>('productos_listar', ['catalogo']);
   const original = useMemo(() => {
     const m: Record<number, number> = {};
     pedido?.items.forEach((i) => {
@@ -58,9 +58,9 @@ export function EditorPedido({ mesaId, mesa, pedido, volver }: { mesaId: number;
     if (!items.length) return setError(pedido ? 'El pedido debe tener al menos un producto. Si el cliente no quiere nada, cancélalo.' : 'Agrega al menos un producto');
     setEnviando(true);
     try {
-      const r = await api<{ mensaje: string }>('pedidos.php', {
-        datos: pedido ? { accion: 'editar', pedido_id: pedido.id, items } : { accion: 'crear', mesa_id: mesaId, items },
-      });
+      const r = pedido
+        ? await rpc<{ mensaje: string }>('pedido_editar', { pedido_id: pedido.id, items })
+        : await rpc<{ mensaje: string }>('pedido_crear', { mesa_id: mesaId, items });
       toast(r.mensaje);
       volver();
     } catch (e) {

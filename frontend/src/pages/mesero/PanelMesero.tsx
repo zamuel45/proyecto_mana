@@ -4,7 +4,7 @@ import { useToast } from '../../components/Toasts';
 import { Aviso, Cargando, Vacio, cx } from '../../components/ui';
 import { useEvento, useSesion } from '../../context/Sesion';
 import { useDatos } from '../../hooks/useDatos';
-import { api } from '../../lib/api';
+import { rpc } from '../../lib/api';
 import { sonar } from '../../lib/sonido';
 import type { Mesa, Pedido } from '../../lib/tipos';
 import { MesaDetalle } from './MesaDetalle';
@@ -19,7 +19,7 @@ export function PanelMesero() {
   const [vista, setVista] = useState<Vista>({ tipo: 'tablero' });
 
   // 2.2.5.4 Aviso al mesero cuando su pedido está listo para servir
-  useEvento<{ tipo: string; mesero_id: number | null; mensaje: string }>('pedido', (d) => {
+  useEvento<{ tipo: string; mesero_id: string | null; mensaje: string }>('pedido', (d) => {
     if (d.tipo === 'listo' && d.mesero_id === usuario?.id) {
       sonar('aviso');
       toast(d.mensaje, 'info', 'Recógelo en cocina y márcalo como entregado');
@@ -47,7 +47,7 @@ export function PanelMesero() {
 /* 2.2.3.2 Consultar estado de mesas · 2.2.3.3 Ocupar mesa */
 function Tablero({ abrir }: { abrir: (id: number) => void }) {
   const toast = useToast();
-  const { datos, cargando, sinConexion, recargar } = useDatos<{ mesas: Mesa[]; yo: number }>('mesas.php', ['mesas', 'pedido']);
+  const { datos, cargando, sinConexion, recargar } = useDatos<{ mesas: Mesa[]; yo: string }>('mesas_listar', ['mesas', 'pedido']);
   const [ocupando, setOcupando] = useState<number | null>(null);
   const [filtro, setFiltro] = useState<'todas' | 'mias' | 'libres'>('todas');
 
@@ -56,7 +56,7 @@ function Tablero({ abrir }: { abrir: (id: number) => void }) {
     if (m.estado === 'libre') {
       setOcupando(m.id);
       try {
-        await api('mesas.php', { datos: { accion: 'ocupar', id: m.id } });
+        await rpc('mesa_ocupar', { id: m.id });
         toast(`Mesa ${m.numero} ocupada`);
         abrir(m.id);
       } catch (e) {

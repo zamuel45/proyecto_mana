@@ -9,7 +9,7 @@ interface Fila { fecha: string; accion: 'editado' | 'cancelado'; detalle: string
 export function Auditoria() {
   const [desde, setDesde] = useState(hoyISO(-6));
   const [hasta, setHasta] = useState(hoyISO());
-  const { datos, cargando } = useDatos<{ historial: Fila[] }>(`pedidos.php?vista=historial&desde=${desde}&hasta=${hasta}`, ['pedido']);
+  const { datos, cargando } = useDatos<{ historial: Fila[] }>('pedidos_historial', ['pedido'], { desde, hasta });
   return (
     <Tarjeta titulo="Pedidos editados y cancelados">
       <div className="mb-4 flex flex-wrap gap-3">

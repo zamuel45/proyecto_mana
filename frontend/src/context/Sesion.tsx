@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import { api, guardarToken, leerToken, onSesionCerrada } from '../lib/api';
+import { guardarToken, leerToken, onSesionCerrada, rpc, servicio } from '../lib/api';
 import { REALTIME_URL } from '../lib/config';
 import type { Usuario } from '../lib/tipos';
 
@@ -26,7 +26,6 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   const socketRef = useRef<Socket | null>(null);
 
   const salir = useCallback((mensaje = '') => {
-    if (leerToken()) void api('logout.php', { datos: {} }).catch(() => {});
     guardarToken(null);
     socketRef.current?.disconnect();
     socketRef.current = null;
@@ -45,7 +44,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
       setCargando(false);
       return;
     }
-    api<{ usuario: Usuario }>('me.php')
+    rpc<{ usuario: Usuario }>('yo')
       .then((r) => setUsuario(r.usuario))
       .catch(() => guardarToken(null))
       .finally(() => setCargando(false));
@@ -66,8 +65,8 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     s.on('disconnect', () => setConectado(false));
     s.on('connect_error', (e) => {
       setConectado(false);
-      // Token rechazado por la API: la sesión ya no es válida
-      if (/turno|suspendido|sesi[oó]n|expir|token/i.test(e.message) && e.message !== 'api_no_disponible') salir(e.message);
+      // Token rechazado: la sesión ya no es válida (turno inactivo, restaurante suspendido, token vencido)
+      if (/turno|suspendido|sesi[oó]n|expir|token/i.test(e.message) && e.message !== 'servidor_no_disponible') salir(e.message);
     });
     s.on('sesion_cerrada', (d: { mensaje?: string }) => salir(d?.mensaje || 'Tu sesión se cerró'));
     return () => {
@@ -79,12 +78,12 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   // Comprobación periódica de la sesión (respaldo si el tiempo real no está disponible)
   useEffect(() => {
     if (!usuario) return;
-    const t = setInterval(() => void api('me.php').catch(() => {}), conectado ? 60000 : 15000);
+    const t = setInterval(() => void rpc('yo').catch(() => {}), conectado ? 60000 : 15000);
     return () => clearInterval(t);
   }, [usuario, conectado]);
 
   const entrar = useCallback(async (email: string, password: string) => {
-    const r = await api<{ token: string; usuario: Usuario }>('login.php', { datos: { email, password } });
+    const r = await servicio<{ token: string; usuario: Usuario }>('login', { email, password });
     guardarToken(r.token);
     setMensajeSalida('');
     setUsuario(r.usuario);

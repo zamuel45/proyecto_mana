@@ -1,7 +1,7 @@
 export type Rol = 'superadmin' | 'administrador' | 'mesero' | 'cocinero';
 
 export interface Usuario {
-  id: number;
+  id: string; // UUID del usuario en GoTrue
   nombre: string;
   email: string;
   rol: Rol;
@@ -26,7 +26,7 @@ export interface Pedido {
   consecutivo: number;
   mesa_id: number;
   mesa: string;
-  mesero_id: number | null;
+  mesero_id: string | null;
   mesero: string | null;
   estado: EstadoPedido;
   total: number;
@@ -47,7 +47,7 @@ export interface Mesa {
   capacidad: number | null;
   estado: 'libre' | 'ocupada';
   estado_vista: 'libre' | 'ocupada' | 'con_pedido';
-  mesero_id: number | null;
+  mesero_id: string | null;
   mesero: string | null;
   ocupada_en: string | null;
   en_curso: number;
@@ -86,7 +86,7 @@ export interface FilaInventario {
 }
 
 export interface Empleado {
-  id: number;
+  id: string;
   nombre: string;
   email: string;
   rol: 'mesero' | 'cocinero';

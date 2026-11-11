@@ -1,0 +1,4 @@
+# Los scripts que se ejecutan dentro de Linux (Docker / VPS) deben tener finales de línea LF
+*.sh   text eol=lf
+*.sql  text eol=lf
+*.conf text eol=lf

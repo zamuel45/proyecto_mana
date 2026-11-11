@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useToast } from '../../components/Toasts';
 import { Aviso, Boton, Campo, Cargando, Insignia, Modal, Tabla, Tarjeta, Vacio } from '../../components/ui';
 import { useDatos } from '../../hooks/useDatos';
-import { api } from '../../lib/api';
+import { rpc } from '../../lib/api';
 import { PLANES } from '../../lib/formato';
 import type { Mesa } from '../../lib/tipos';
 
@@ -11,7 +11,7 @@ const ESTADO = { libre: ['verde', 'Libre'], ocupada: ['trigo', 'Ocupada'], con_p
 /* 2.2.3.1 Registrar, editar y retirar mesas */
 export function MesasAdmin() {
   const toast = useToast();
-  const { datos, cargando, recargar } = useDatos<{ mesas: Mesa[]; plan: string; limite: number | null }>('mesas.php', ['mesas', 'pedido']);
+  const { datos, cargando, recargar } = useDatos<{ mesas: Mesa[]; plan: string; limite: number | null }>('mesas_listar', ['mesas', 'pedido']);
   const [numero, setNumero] = useState('');
   const [capacidad, setCapacidad] = useState('');
   const [error, setError] = useState('');
@@ -23,7 +23,7 @@ export function MesasAdmin() {
     setError('');
     setEnviando(true);
     try {
-      const r = await api<{ mensaje: string }>('mesas.php', { datos: { accion: 'crear', numero, capacidad } });
+      const r = await rpc<{ mensaje: string }>('mesa_crear', { numero, capacidad: String(capacidad ?? '') });
       toast(r.mensaje);
       setNumero('');
       setCapacidad('');
@@ -38,7 +38,7 @@ export function MesasAdmin() {
   async function accion(m: Mesa, accion: 'retirar' | 'liberar') {
     if (accion === 'retirar' && !confirm(`¿Retirar la mesa ${m.numero}? Su historial de pedidos se conserva.`)) return;
     try {
-      const r = await api<{ mensaje: string }>('mesas.php', { datos: { accion, id: m.id } });
+      const r = await rpc<{ mensaje: string }>(`mesa_${accion}`, { id: m.id });
       toast(r.mensaje);
       void recargar();
     } catch (err) {
@@ -132,7 +132,7 @@ function EditarMesa({ mesa, onCerrar, onListo }: { mesa: Mesa | null; onCerrar: 
   async function guardar(e: FormEvent) {
     e.preventDefault();
     try {
-      const r = await api<{ mensaje: string }>('mesas.php', { datos: { accion: 'editar', id: mesa!.id, numero, capacidad } });
+      const r = await rpc<{ mensaje: string }>('mesa_editar', { id: mesa!.id, numero, capacidad: String(capacidad ?? '') });
       toast(r.mensaje);
       onListo();
       setCargada(null);

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useToast } from '../../components/Toasts';
 import { Aviso, Boton, Campo, Cargando, Casilla, Insignia, Modal, Tarjeta, Vacio, cx } from '../../components/ui';
 import { useDatos } from '../../hooks/useDatos';
-import { api } from '../../lib/api';
+import { rpc, subirImagen } from '../../lib/api';
 import { urlImagen } from '../../lib/config';
 import { fechaHora, pesos } from '../../lib/formato';
 import type { Producto } from '../../lib/tipos';
@@ -10,14 +10,14 @@ import type { Producto } from '../../lib/tipos';
 /* 2.2.7 Gestión de menú y precios */
 export function Menu() {
   const toast = useToast();
-  const { datos, cargando, recargar } = useDatos<{ productos: Producto[] }>('productos.php', ['catalogo']);
+  const { datos, cargando, recargar } = useDatos<{ productos: Producto[] }>('productos_listar', ['catalogo']);
   const [editar, setEditar] = useState<Producto | 'nuevo' | null>(null);
   const [historial, setHistorial] = useState<Producto | null>(null);
   const [verInactivos, setVerInactivos] = useState(true);
 
   async function cambiarEstado(p: Producto) {
     try {
-      const r = await api<{ mensaje: string }>('productos.php', { datos: { accion: 'estado', id: p.id, activo: !p.activo } });
+      const r = await rpc<{ mensaje: string }>('producto_estado', { id: p.id, activo: !p.activo });
       toast(r.mensaje);
       void recargar();
     } catch (e) {
@@ -119,14 +119,13 @@ function FormPlato({ plato, onCerrar, onListo }: { plato: Producto | 'nuevo' | n
     e.preventDefault();
     setError('');
     setEnviando(true);
-    const fd = new FormData();
-    fd.append('accion', es ? 'editar' : 'crear');
-    if (es) fd.append('id', String(es.id));
-    Object.entries(f).forEach(([kk, v]) => fd.append(kk, v));
-    if (imagen) fd.append('imagen', imagen);
-    if (quitar) fd.append('quitar_imagen', '1');
     try {
-      const r = await api<{ mensaje: string }>('productos.php', { formulario: fd });
+      // La imagen se sube primero al servicio Node; el plato guarda solo su ruta
+      const ruta = imagen ? await subirImagen(imagen) : undefined;
+      const datos = { ...f, imagen: ruta };
+      const r = es
+        ? await rpc<{ mensaje: string }>('producto_editar', { id: es.id, ...datos, quitar_imagen: quitar })
+        : await rpc<{ mensaje: string }>('producto_crear', datos);
       toast(r.mensaje);
       onListo();
       cerrar();
@@ -178,7 +177,7 @@ function HistorialPrecios({ plato, onCerrar }: { plato: Producto | null; onCerra
     if (id === null) return;
     let vivo = true;
     setFilas(null);
-    api<{ historial: Fila[] }>('productos.php', { datos: { accion: 'historial_precios', id } })
+    rpc<{ historial: Fila[] }>('producto_historial_precios', { id })
       .then((r) => vivo && setFilas(r.historial))
       .catch(() => vivo && setFilas([]));
     return () => {

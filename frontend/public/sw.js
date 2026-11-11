@@ -1,7 +1,7 @@
 /* Service worker de Maná (PWA).
  * - Guarda la aplicación (HTML, JS, CSS, íconos) para abrir rápido e instalarla en el celular.
- * - NUNCA guarda la API (/api/) ni el tiempo real: pedidos, mesas e inventario siempre son en vivo. */
-const CACHE = 'mana-v1';
+ * - NUNCA guarda la API (/rest/, /servicio/, /auth/) ni el tiempo real: pedidos, mesas e inventario siempre son en vivo. */
+const CACHE = 'mana-v2';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icons/logo.svg'])).catch(() => {}));
@@ -16,7 +16,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
-  if (url.pathname.includes('/api/') || url.pathname.includes('/socket.io/')) return;
+  if (/^\/(rest|servicio|auth|socket\.io)\//.test(url.pathname)) return;
   // Páginas: primero la red (para tener siempre la última versión); sin red, la copia guardada
   if (e.request.mode === 'navigate') {
     e.respondWith(fetch(e.request).catch(() => caches.match('./index.html')));

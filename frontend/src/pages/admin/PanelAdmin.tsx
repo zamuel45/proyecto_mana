@@ -21,7 +21,7 @@ type Seccion = 'resumen' | 'mesas' | 'menu' | 'inventario' | 'empleados' | 'repo
 export function PanelAdmin() {
   const [sec, setSec] = useState<Seccion>('resumen');
   const toast = useToast();
-  const notif = useDatos<{ notificaciones: Notificacion[]; pendientes: number }>('notificaciones.php', ['venta', 'alerta']);
+  const notif = useDatos<{ notificaciones: Notificacion[]; pendientes: number }>('notificaciones_listar', ['venta', 'alerta']);
 
   // 2.2.8.2 Notificación inmediata de cada pedido entregado
   useEvento<{ titulo: string; total: number; mesa: string; items: { nombre: string; cantidad: number }[] }>('venta', (d) => {

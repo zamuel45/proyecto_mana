@@ -1,29 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, ErrorApi } from '../lib/api';
+import { ErrorApi, rpc } from '../lib/api';
 import { useSesion } from '../context/Sesion';
 
 /**
- * Carga datos de la API y los mantiene actualizados SIN recargar la página:
+ * Carga datos de una función del sistema (rpc) y los mantiene actualizados SIN recargar la página:
  *  - se recargan al recibir cualquiera de los eventos de tiempo real indicados,
  *  - al reconectarse el WebSocket (para no perder nada mientras estuvo desconectado),
  *  - y, como respaldo, cada 5 s si el tiempo real está caído (cada 60 s si está activo).
+ * funcion = null → no carga nada (ej. mientras no se ha elegido un registro).
  */
-export function useDatos<T>(ruta: string | null, eventos: string[] = []) {
+export function useDatos<T>(funcion: string | null, eventos: string[] = [], params: Record<string, unknown> = {}) {
   const { socket, conectado } = useSesion();
   const [datos, setDatos] = useState<T | null>(null);
   const [error, setError] = useState('');
   const [sinConexion, setSinConexion] = useState(false);
   const [cargando, setCargando] = useState(true);
-  const rutaRef = useRef(ruta);
-  rutaRef.current = ruta;
+  const clave = funcion ? `${funcion}:${JSON.stringify(params)}` : null;
+  const consulta = useRef({ clave, funcion, params });
+  consulta.current = { clave, funcion, params };
   const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const recargar = useCallback(async () => {
-    const r = rutaRef.current;
-    if (!r) return;
+    const { clave: c, funcion: f, params: p } = consulta.current;
+    if (!f) return;
     try {
-      const d = await api<T>(r);
-      if (rutaRef.current !== r) return;
+      const d = await rpc<T>(f, p);
+      if (consulta.current.clave !== c) return;
       setDatos(d);
       setError('');
       setSinConexion(false);
@@ -46,7 +48,7 @@ export function useDatos<T>(ruta: string | null, eventos: string[] = []) {
   useEffect(() => {
     setCargando(true);
     void recargar();
-  }, [ruta, recargar]);
+  }, [clave, recargar]);
 
   const claveEventos = eventos.join(',');
   useEffect(() => {

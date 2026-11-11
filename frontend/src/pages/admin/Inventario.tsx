@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useToast } from '../../components/Toasts';
 import { Aviso, Boton, Campo, Cargando, Dato, Insignia, Modal, Tabla, Tarjeta, Vacio } from '../../components/ui';
 import { useDatos } from '../../hooks/useDatos';
-import { api } from '../../lib/api';
+import { rpc } from '../../lib/api';
 import { fechaHora, hoyISO, numero } from '../../lib/formato';
 import type { EstadoInventario, FilaInventario } from '../../lib/tipos';
 
@@ -19,7 +19,7 @@ interface Resp { inventario: FilaInventario[]; resumen: { total: number; agotado
 /* 2.2.6 Inventario · 2.2.8.4 Inventario restante */
 export function Inventario() {
   const [corte, setCorte] = useState('');
-  const { datos, cargando, recargar } = useDatos<Resp>(`inventario.php${corte ? `?corte=${corte}` : ''}`, ['catalogo', 'pedido']);
+  const { datos, cargando, recargar } = useDatos<Resp>('inventario_listar', ['catalogo', 'pedido'], { corte: corte || undefined });
   const [accion, setAccion] = useState<{ fila: FilaInventario; tipo: 'inicial' | 'recargar' } | null>(null);
   const [movs, setMovs] = useState<FilaInventario | null>(null);
   const [filtro, setFiltro] = useState<'todos' | 'alerta'>('todos');
@@ -134,7 +134,7 @@ function MovimientoStock({ accion, onCerrar, onListo }: { accion: { fila: FilaIn
     if (!/^\d+$/.test(cantidad.trim())) return setError('Escribe un número entero (sin decimales)');
     setEnviando(true);
     try {
-      const r = await api<{ mensaje: string }>('inventario.php', { datos: { accion: accion.tipo, producto_id: accion.fila.id, cantidad: cantidad.trim() } });
+      const r = await rpc<{ mensaje: string }>(`inventario_${accion.tipo}`, { producto_id: accion.fila.id, cantidad: cantidad.trim() });
       toast(r.mensaje);
       onListo();
       onCerrar();
@@ -182,7 +182,7 @@ function Movimientos({ producto, onCerrar }: { producto: FilaInventario | null; 
     if (id === null) return;
     let vivo = true;
     setLista(null);
-    api<{ movimientos: Mov[] }>(`inventario.php?movimientos=${id}`)
+    rpc<{ movimientos: Mov[] }>('inventario_movimientos', { producto_id: id })
       .then((r) => vivo && setLista(r.movimientos))
       .catch(() => vivo && setLista([]));
     return () => {

@@ -45,7 +45,7 @@ export function Login() {
             Mesas, pedidos, cocina e inventario de tu restaurante en tiempo real, desde el celular, la tablet o el computador.
           </p>
         </div>
-        <p className="relative mt-6 hidden text-sm text-white/50 lg:block">Restaurante Jaider · Flandes, Tolima</p>
+        <p className="relative mt-6 hidden text-sm text-white/50 lg:block">Plataforma de pedidos, cocina e inventario para restaurantes</p>
       </div>
 
       <div className="flex items-center justify-center px-6 py-10">
@@ -61,15 +61,17 @@ export function Login() {
           <Boton type="submit" tam="lg" className="w-full" cargando={enviando}>
             Entrar
           </Boton>
-          <details className="rounded-xl bg-crust px-4 py-3 text-sm text-ink-600">
-            <summary className="cursor-pointer font-semibold">Usuarios de prueba</summary>
-            <ul className="mt-2 space-y-1 font-mono text-xs">
-              <li>super@mana.co · Super123*</li>
-              <li>admin@jaider.co · Admin123*</li>
-              <li>mesero@jaider.co · Mesero123*</li>
-              <li>cocinero@jaider.co · Cocina123*</li>
-            </ul>
-          </details>
+          {import.meta.env.DEV && (   // solo en desarrollo (npm run dev): nunca en la versión publicada
+            <details className="rounded-xl bg-crust px-4 py-3 text-sm text-ink-600">
+              <summary className="cursor-pointer font-semibold">Usuarios de prueba</summary>
+              <ul className="mt-2 space-y-1 font-mono text-xs">
+                <li>super@mana.co · Super123*</li>
+                <li>admin@jaider.co · Admin123*</li>
+                <li>mesero@jaider.co · Mesero123*</li>
+                <li>cocinero@jaider.co · Cocina123*</li>
+              </ul>
+            </details>
+          )}
         </form>
       </div>
     </div>

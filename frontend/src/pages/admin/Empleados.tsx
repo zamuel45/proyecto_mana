@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useToast } from '../../components/Toasts';
 import { Aviso, Boton, Campo, Cargando, Casilla, Insignia, Modal, Selector, Tabla, Tarjeta, Vacio, cx } from '../../components/ui';
 import { useDatos } from '../../hooks/useDatos';
-import { api } from '../../lib/api';
+import { rpc, servicio } from '../../lib/api';
 import { DIAS } from '../../lib/formato';
 import type { Empleado } from '../../lib/tipos';
 
@@ -15,7 +15,7 @@ function resumenHorario(h: Empleado['horario']) {
 /* 2.2.2.3 Registrar empleado · 2.2.2.4 Programar horario · 2.2.2.5 Activar/desactivar turno */
 export function Empleados() {
   const toast = useToast();
-  const { datos, cargando, recargar } = useDatos<{ empleados: Empleado[] }>('empleados.php', ['empleados']);
+  const { datos, cargando, recargar } = useDatos<{ empleados: Empleado[] }>('empleados_listar', ['empleados']);
   const vacio = { nombre: '', email: '', password: '', rol: 'mesero', autoriza_datos: false };
   const [f, setF] = useState(vacio);
   const [error, setError] = useState('');
@@ -27,7 +27,7 @@ export function Empleados() {
     setError('');
     setEnviando(true);
     try {
-      const r = await api<{ mensaje: string }>('empleados.php', { datos: f });
+      const r = await servicio<{ mensaje: string }>('empleados', f);
       toast(r.mensaje);
       setF(vacio);
       void recargar();
@@ -40,7 +40,7 @@ export function Empleados() {
 
   async function turno(e: Empleado) {
     try {
-      const r = await api<{ mensaje: string }>('turnos.php', { datos: { accion: 'manual', usuario_id: e.id, activo: !e.turno_activo } });
+      const r = await rpc<{ mensaje: string }>('turno_manual', { usuario_id: e.id, activo: !e.turno_activo });
       toast(r.mensaje, e.turno_activo ? 'alerta' : 'ok');
       void recargar();
     } catch (err) {
@@ -136,7 +136,7 @@ function ProgramarHorario({ empleado, onCerrar, onListo }: { empleado: Empleado 
     e.preventDefault();
     setError('');
     try {
-      const r = await api<{ mensaje: string }>('turnos.php', { datos: { accion: 'horario', usuario_id: empleado!.id, dias, inicio, fin } });
+      const r = await rpc<{ mensaje: string }>('turno_horario', { usuario_id: empleado!.id, dias, inicio, fin });
       toast(r.mensaje);
       onListo();
       onCerrar();
@@ -146,7 +146,7 @@ function ProgramarHorario({ empleado, onCerrar, onListo }: { empleado: Empleado 
   }
   async function quitar() {
     try {
-      const r = await api<{ mensaje: string }>('turnos.php', { datos: { accion: 'quitar_horario', usuario_id: empleado!.id } });
+      const r = await rpc<{ mensaje: string }>('turno_quitar_horario', { usuario_id: empleado!.id });
       toast(r.mensaje);
       onListo();
       onCerrar();

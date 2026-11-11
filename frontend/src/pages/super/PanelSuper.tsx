@@ -3,24 +3,21 @@ import { Marco } from '../../components/Marco';
 import { useToast } from '../../components/Toasts';
 import { Aviso, Boton, Campo, Cargando, Casilla, Dato, Insignia, Modal, Selector, Tabla, Tarjeta, Vacio } from '../../components/ui';
 import { useDatos } from '../../hooks/useDatos';
-import { api } from '../../lib/api';
+import { rpc, servicio } from '../../lib/api';
 import { fechaCorta, PLANES, ROLES } from '../../lib/formato';
 import type { Restaurante } from '../../lib/tipos';
 
 interface RespLista { restaurantes: Restaurante[]; resumen: { total: number; activos: number }; mensaje: string | null }
 interface RespDetalle {
   restaurante: Restaurante & { mesas: number };
-  usuarios: { id: number; nombre: string; email: string; rol: string; turno_activo: number }[];
+  usuarios: { id: string; nombre: string; email: string; rol: string; turno_activo: number }[];
 }
 
 /* 2.2.1 Panel de súper-administración (equipo Maná) */
 export function PanelSuper() {
   const [q, setQ] = useState('');
   const [estado, setEstado] = useState('');
-  const { datos, cargando, recargar } = useDatos<RespLista>(
-    `restaurantes.php?q=${encodeURIComponent(q)}&estado=${estado}`,
-    ['restaurantes'],
-  );
+  const { datos, cargando, recargar } = useDatos<RespLista>('restaurantes_listar', ['restaurantes'], { q, estado: estado || undefined });
   const [nuevo, setNuevo] = useState(false);
   const [cambio, setCambio] = useState<Restaurante | null>(null);
   const [detalle, setDetalle] = useState<number | null>(null);
@@ -117,7 +114,7 @@ function NuevoRestaurante({ abierto, onCerrar, onListo }: { abierto: boolean; on
     setError('');
     setEnviando(true);
     try {
-      const r = await api<{ mensaje: string }>('restaurantes.php', { datos: { accion: 'crear', ...f } });
+      const r = await servicio<{ mensaje: string }>('restaurantes', f);
       toast(r.mensaje);
       setF(vacio);
       onListo();
@@ -182,7 +179,7 @@ function CambiarEstado({ restaurante, onCerrar, onListo }: { restaurante: Restau
     setEnviando(true);
     setError('');
     try {
-      const r = await api<{ mensaje: string }>('restaurantes.php', { datos: { accion: 'estado', id: restaurante.id, activo: activar, motivo } });
+      const r = await rpc<{ mensaje: string }>('restaurante_estado', { id: restaurante.id, activo: activar, motivo });
       toast(r.mensaje, activar ? 'ok' : 'alerta');
       setMotivo('');
       onListo();
@@ -220,10 +217,10 @@ function CambiarEstado({ restaurante, onCerrar, onListo }: { restaurante: Restau
 /* Soporte: ver usuarios de un restaurante y controlar turnos (2.2.2.5 también para el súper-administrador) */
 function DetalleRestaurante({ id, onCerrar }: { id: number | null; onCerrar: () => void }) {
   const toast = useToast();
-  const { datos, recargar } = useDatos<RespDetalle>(id ? `restaurantes.php?id=${id}` : null, ['empleados']);
-  async function turno(uid: number, activo: boolean) {
+  const { datos, recargar } = useDatos<RespDetalle>(id ? 'restaurante_detalle' : null, ['empleados'], { id });
+  async function turno(uid: string, activo: boolean) {
     try {
-      const r = await api<{ mensaje: string }>('turnos.php', { datos: { accion: 'manual', usuario_id: uid, activo } });
+      const r = await rpc<{ mensaje: string }>('turno_manual', { usuario_id: uid, activo });
       toast(r.mensaje);
       void recargar();
     } catch (e) {

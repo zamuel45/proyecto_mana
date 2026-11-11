@@ -16,7 +16,7 @@ export function Marco({ children, ancho = 'max-w-6xl', extra }: { children: Reac
           <div className="min-w-0 flex-1">
             <p className="truncate font-serif text-lg leading-tight text-wheat-200">
               {usuario.restaurante ?? 'Maná'}
-              {usuario.restaurante && <span className="ml-2 hidden text-xs font-sans text-wheat-100/70 sm:inline">con Maná</span>}
+              {usuario.restaurante && <span className="ml-2 hidden text-xs font-sans text-wheat-100/70 sm:inline">— potenciado por Maná</span>}
             </p>
             <p className="truncate text-xs text-white/75">
               {usuario.nombre} · {ROLES[usuario.rol]}

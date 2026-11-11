@@ -3,12 +3,12 @@ import { useToast } from '../../components/Toasts';
 import { Aviso, Boton, Campo, Cargando, Insignia, Modal, Vacio, cx } from '../../components/ui';
 import { useSesion } from '../../context/Sesion';
 import { useDatos } from '../../hooks/useDatos';
-import { api } from '../../lib/api';
+import { rpc } from '../../lib/api';
 import { ESTADO_PEDIDO, hora, pesos } from '../../lib/formato';
 import type { Pedido } from '../../lib/tipos';
 
 interface Resp {
-  mesa: { id: number; numero: string; estado: 'libre' | 'ocupada'; mesero_id: number | null; mesero: string | null; ocupada_en: string | null };
+  mesa: { id: number; numero: string; estado: 'libre' | 'ocupada'; mesero_id: string | null; mesero: string | null; ocupada_en: string | null };
   pedidos: Pedido[];
 }
 const COLOR = { enviado: 'trigo', en_preparacion: 'azul', listo: 'verde', entregado: 'gris', cancelado: 'rojo' } as const;
@@ -17,14 +17,14 @@ const COLOR = { enviado: 'trigo', en_preparacion: 'azul', listo: 'verde', entreg
 export function MesaDetalle({ mesaId, volver, nuevoPedido, editarPedido }: { mesaId: number; volver: () => void; nuevoPedido: (mesa: string) => void; editarPedido: (p: Pedido) => void }) {
   const { usuario } = useSesion();
   const toast = useToast();
-  const { datos, cargando, recargar } = useDatos<Resp>(`pedidos.php?mesa_id=${mesaId}`, ['pedido', 'mesas']);
+  const { datos, cargando, recargar } = useDatos<Resp>('pedidos_mesa', ['pedido', 'mesas'], { mesa_id: mesaId });
   const [cancelar, setCancelar] = useState<Pedido | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
 
   async function entregar(p: Pedido) {
     setTrabajando(`e${p.id}`);
     try {
-      const r = await api<{ mensaje: string }>('pedidos.php', { datos: { accion: 'entregar', pedido_id: p.id } });
+      const r = await rpc<{ mensaje: string }>('pedido_entregar', { pedido_id: p.id });
       toast(r.mensaje);
       void recargar();
     } catch (e) {
@@ -36,7 +36,7 @@ export function MesaDetalle({ mesaId, volver, nuevoPedido, editarPedido }: { mes
   async function liberar() {
     setTrabajando('liberar');
     try {
-      const r = await api<{ mensaje: string }>('mesas.php', { datos: { accion: 'liberar', id: mesaId } });
+      const r = await rpc<{ mensaje: string }>('mesa_liberar', { id: mesaId });
       toast(r.mensaje);
       volver();
     } catch (e) {
@@ -151,7 +151,7 @@ function CancelarPedido({ pedido, onCerrar, onListo }: { pedido: Pedido | null; 
     setEnviando(true);
     setError('');
     try {
-      const r = await api<{ mensaje: string }>('pedidos.php', { datos: { accion: 'cancelar', pedido_id: pedido.id, motivo } });
+      const r = await rpc<{ mensaje: string }>('pedido_cancelar', { pedido_id: pedido.id, motivo });
       toast(r.mensaje, 'alerta');
       setMotivo('');
       onListo();

@@ -1,0 +1,5 @@
+# Tareas programadas del VPS de Maná (agregar con: crontab -e)
+# Copia de seguridad diaria a las 3:30 a. m. (hora del servidor; configura: sudo timedatectl set-timezone America/Bogota)
+30 3 * * * REMOTO="gdrive:mana-respaldos" /opt/mana/deploy/respaldo.sh >> /var/log/mana-respaldo.log 2>&1
+# Al reiniciar el VPS, levantar Maná (Docker ya lo hace con restart: unless-stopped; esto es un respaldo)
+@reboot cd /opt/mana && docker compose up -d

@@ -22,9 +22,9 @@ function inicioMes() {
 export function Reportes() {
   const [desde, setDesde] = useState(hoyISO());
   const [hasta, setHasta] = useState(hoyISO());
-  const { datos, cargando, error } = useDatos<Reporte>(`ventas.php?vista=reporte&desde=${desde}&hasta=${hasta}`, ['venta']);
+  const { datos, cargando, error } = useDatos<Reporte>('ventas_reporte', ['venta'], { desde, hasta });
   const esHoy = hasta >= hoyISO();
-  const inv = useDatos<{ inventario: FilaInventario[] }>(`inventario.php${esHoy ? '' : `?corte=${hasta}`}`, ['catalogo']);
+  const inv = useDatos<{ inventario: FilaInventario[] }>('inventario_listar', ['catalogo'], esHoy ? {} : { corte: hasta });
 
   const rango = (d: string, h: string) => {
     setDesde(d);

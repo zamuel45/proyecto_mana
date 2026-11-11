@@ -1,4 +1,4 @@
-import { API_URL } from './config';
+import { REST_URL, SERVICIO_URL } from './config';
 
 const CLAVE_TOKEN = 'mana_token';
 
@@ -36,37 +36,62 @@ export function onSesionCerrada(fn: (mensaje: string) => void) {
   alCerrarSesion = fn;
 }
 
-type Opciones = { datos?: Record<string, unknown>; formulario?: FormData; senal?: AbortSignal };
-
-/** Llama a la API PHP. GET si no hay datos; POST con JSON o FormData si los hay. */
-export async function api<T = Record<string, unknown>>(ruta: string, opciones: Opciones = {}): Promise<T> {
-  const { datos, formulario, senal } = opciones;
-  const headers: Record<string, string> = {};
+async function pedir<T>(url: string, init: RequestInit, senal?: AbortSignal): Promise<T> {
   const token = leerToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
-  let body: BodyInit | undefined;
-  if (formulario) body = formulario;
-  else if (datos) {
-    headers['Content-Type'] = 'application/json';
-    body = JSON.stringify(datos);
-  }
+  const headers = new Headers(init.headers);
+  if (token) headers.set('Authorization', `Bearer ${token}`);
   let r: Response;
   try {
-    r = await fetch(`${API_URL}/${ruta}`, { method: body ? 'POST' : 'GET', headers, body, signal: senal });
+    r = await fetch(url, { ...init, headers, signal: senal });
   } catch (e) {
     if ((e as Error).name === 'AbortError') throw e;
-    throw new ErrorApi('Sin conexión con el servidor. Revisa el Wi-Fi o que XAMPP esté encendido', 0, true);
+    throw new ErrorApi('Sin conexión con el servidor. Revisa el Wi-Fi o que Maná esté encendido', 0, true);
   }
   let j: Record<string, unknown> = {};
   try {
     j = await r.json();
   } catch {
-    throw new ErrorApi(`Respuesta inválida del servidor (${r.status}). ¿Está bien instalada la API?`, r.status);
+    throw new ErrorApi(`Respuesta inválida del servidor (${r.status}). ¿Están encendidos los servicios de Maná?`, r.status);
   }
   if (!r.ok) {
-    const mensaje = String(j.error || 'Ocurrió un error');
-    if (r.status === 401 && token) alCerrarSesion(mensaje);
+    // Errores de PostgREST: { message }; de las funciones y del servicio Node: { error }
+    const mensaje = String(j.error || j.message || 'Ocurrió un error');
+    if (r.status === 401 && token) alCerrarSesion(/JWT|token/i.test(mensaje) ? 'Tu sesión expiró. Inicia sesión de nuevo' : mensaje);
     throw new ErrorApi(mensaje, r.status);
   }
   return j as T;
+}
+
+/**
+ * Llama a una función del sistema en PostgreSQL a través de PostgREST (POST /rest/v1/rpc/<nombre>).
+ * Los parámetros se envían con el prefijo p_ que usan las funciones (ver database/migraciones/004_api.sql).
+ * Ej.: rpc('pedido_crear', { mesa_id: 3, items }) → api.pedido_crear(p_mesa_id, p_items)
+ */
+export function rpc<T = Record<string, unknown>>(nombre: string, params: Record<string, unknown> = {}, senal?: AbortSignal) {
+  const cuerpo: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(params)) if (v !== undefined) cuerpo[`p_${k}`] = v;
+  return pedir<T>(`${REST_URL}/rpc/${nombre}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(cuerpo),
+  }, senal);
+}
+
+/** Llama al servicio Node (inicio de sesión, altas con GoTrue). */
+export function servicio<T = Record<string, unknown>>(ruta: string, datos: Record<string, unknown>) {
+  return pedir<T>(`${SERVICIO_URL}/${ruta}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+}
+
+/** Sube la imagen de un plato y devuelve su ruta (uploads/productos/…). */
+export async function subirImagen(archivo: File): Promise<string> {
+  const r = await pedir<{ ruta: string }>(`${SERVICIO_URL}/imagen`, {
+    method: 'POST',
+    headers: { 'Content-Type': archivo.type || 'application/octet-stream' },
+    body: archivo,
+  });
+  return r.ruta;
 }
