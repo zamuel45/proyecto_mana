@@ -1,0 +1,4 @@
+node_modules/
+api/logs/*.log
+uploads/productos/*
+!uploads/productos/.gitkeep

@@ -1,0 +1,16 @@
+{
+  "name": "mana-realtime",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Maná — servicio de notificaciones en tiempo real (Node.js + Socket.io)",
+  "main": "servidor.js",
+  "scripts": {
+    "start": "node servidor.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "socket.io": "4.8.1"
+  }
+}
